@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <script src="https://unpkg.com/react@15.3.2/dist/react.js"></script>
+  <script src="https://unpkg.com/react-dom@15.3.2/dist/react-dom.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.23/browser.min.js"></script>
+  <script src="https://npmcdn.com/react-router@3.0.2/umd/ReactRouter.min.js"></script>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css" integrity="sha384-9gVQ4dYFwwWSjIDZnLEWnxCjeSWFphJiwGPXr1jddIhOegiu1FwO5qRGvFXOdJZ4" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.9/css/all.css" integrity="sha384-5SOiIsAziJl6AWe0HWRKTXlfcSHKmYV4RBF18PPJ173Kzn7jzMyFuTtk8JA7QQG1" crossorigin="anonymous">
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <style>
+  body {
+    padding: 20px;
+    margin: 0;
+    background-color: lightgrey;
+  }
+  </style>
+</head>
+
+<body>
+
+  <div id="container">
+    Loading...
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.0/umd/popper.min.js" integrity="sha384-cs/chFZiN24E4KMATLdqdvsezGxaGsi4hLGOzlXwp5UZB1LY//20VyM2taTB4QvJ" crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.0/js/bootstrap.min.js" integrity="sha384-uefMccjFJAIv6A+rW+L4AHf99KvxDjWSu1z9VI8SKNVmz4sk7buKt/6v9KI65qnm" crossorigin="anonymous"></script>
+  
+  <script type="text/babel">
+    const API_USER = 'https://api.github.com/users';
+    const API_SEARCH_USERS = 'https://api.github.com/search/users?q='
+
+    var destination = document.querySelector("#container");
+
+
+//Component for searchbar
+class SearchUsers extends React.Component {
+
+  //Initiates a search on page load.
+  componentWillMount(){
+    this.props.fetchUsers('dylan');
+  }
+
+  //Renders Searchbar and Buttons
+  render() {
+        return (
+            <div className='form-group searchBoxContainer'>
+              <input className='form-control searchBox' type="search" ref="username" placeholder="Enter username to search"/>
+                 <div className='buttonContainer'> 
+                   <button className='searchBtn btn btn-primary' onClick={this.search.bind(this)}> Search Users <i className="fas fa-search icon"></i>  </button>
+                   <button className='searchBtn btn btn-primary' onClick={this.findUser.bind(this)}> Find User </button>
+                 </div> 
+            </div>
+        )
+    }
+    
+    //Function that calls api for searching users.
+    search(e) {
+        let username = this.refs.username.value
+        this.props.fetchUsers(username);
+        this.refs.username.value = '';
+
+    }
+    //Function that calls api for user.
+    findUser(e){
+      let username = this.refs.username.value;
+      this.props.fetchProfile(username);
+      this.refs.username.value = '';
+    }
+
+}
+
+
+// Main App Component - This is where all the data is controlled
+class App extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = {
+     user: {
+      username: '',
+      name:'',
+      avatar:'',
+      bio: '',
+      createdAt: '',
+      email: '',
+      homeUrl:'',
+      notFound:'',
+      repos: [],
+     },
+      profile: false,
+      search: true,
+      showRepository: false,
+      users: [],
+      repository: {},
+    }
+  }
+
+// This is the function that calls the api and returns users.
+  fetchUsers(username) {
+    let url = `${API_SEARCH_USERS}${username}`;
+    fetch(url)
+      .then((res) => res.json() )
+      .then((data) => {
+        this.setState({
+          profile: false,
+          search: true,
+          users: data.items
+        })
+      })
+      .catch((error) => console.log('Oops! . There Is A Problem') )
+  }
+  //This function shows the specific repository and saves the data is state.
+  showRepository(repository) {
+    this.setState({
+      repository,
+      search: false,
+      profile: false,
+      showRepository: true,
+    })
+
+  }
+
+  //This function fetches a Specific profile AND the repositories of that user.
+  fetchProfile(username) { 
+    let url = `${API_USER}/${username}`;
+    fetch(url)
+      .then((res) => res.json() )
+      .then((data) => {
+        fetch(`${url}/repos`)
+        .then((response) => response.json() )
+        .then((repos) => {
+          this.setState({
+            user: {
+              repos,
+              username: data.login,
+              name: data.name,
+              avatar: data.avatar_url,
+              email: data.email,
+              bio: data.bio,
+              createdAt: data.created_at,
+              homeUrl: data.html_url,
+              notFound: data.message,
+            },
+            profile: true,
+            search: false,
+            showRepository: false,
+            users: []
+          })
+        })
+      })
+      .catch((error) => console.log('Oops! . There Is A Problem') )
+  }
+
+// the functions are passed into the Search Profile componant to be used from there later on. This is how you push data back up the structure
+// Specific states are checked to determine what the user should be seeing.
+  render() {
+    let showProfile = this.state.profile;
+    let showSearch = this.state.search;
+    let showRepository = this.state.showRepository;
+    return (
+      <div>
+            <SearchUsers fetchProfile={this.fetchProfile.bind(this)} fetchUsers={this.fetchUsers.bind(this)}/>
+            {
+              showProfile ? <Profile showRepository={this.showRepository.bind(this)} data={this.state.user} /> : null
+            }
+            {
+              showSearch ? <Users fetchProfile={this.fetchProfile.bind(this)} users={this.state.users}/> : null
+            }
+            {
+              showRepository ? <Repository fetchProfile={this.fetchProfile.bind(this)} repos={this.state.repository}/> : null
+            }
+        
+      </div>
+    )
+  }
+}
+
+var Main = React.createClass({
+render: function() {
+  return (
+    <div>
+      <App />
+    </div>
+  )
+}
+});
+
+//This is the component that displays all the users after searching
+class Users extends React.Component {
+  constructor(){
+    super();
+    this.fetchUser = this.fetchUser.bind(this);
+
+  }
+  fetchUser(username){
+      this.props.fetchProfile(username);
+  }
+
+  render () {
+    let users = this.props.users;
+    
+    return (
+      <div className='usersContainer'>
+      {
+       users.map((user) => {
+          return (
+
+            <div className='container ' onClick={() => this.fetchUser(user.login)} key={user.id} >
+              <div className="row align-items-center userCard">
+                <div className="col">
+                  <img className='userIcon' src={user.avatar_url}/>
+                </div>
+                <div className="col">
+                  <div className='userName'> {user.login} </div>
+                </div>
+              </div>
+          
+            </div>
+          
+          )
+        })
+      }
+        
+      </div>
+    )
+  }
+}
+
+//This component is for Specific repositories
+class Repository extends React.Component {
+  constructor(){
+    super();
+    this.back = this.back.bind(this);
+
+  }
+
+  processDate(timestamp){
+      let date = new Date(timestamp);
+      let year = date.getFullYear();
+      let month = date.getMonth();
+      let day = date.getDate();
+
+
+      let h = new Date(timestamp).getHours();
+      let m = new Date(timestamp).getMinutes();
+
+      h = (h<10) ? '0' + h : h;
+      m = (m<10) ? '0' + m : m;
+
+      var time = h + ':' + m;
+      return `${year}-${month}-${day} ${time}`;
+    }
+  
+  back(){
+      let user = this.props.repos.owner.login;
+      this.props.fetchProfile(user);
+  }
+  render() {
+    
+    let repository = this.props.repos;
+    let user = this.props.repos.owner;
+      return (
+          <div>
+                  <div className='repositoryContainer'>
+            <button className='btn btn-primary left' onClick={() => this.back()}> Back </button>
+                  <div className='repositoryName'> {repository.name} </div>
+                  <div className='repositoryDesc'> {repository.description} </div>
+                  <div>Size: {repository.size / 1000}KB </div>
+                  <div>Language: {repository.language} </div>
+                  <div>Created At:  {this.processDate(repository.created_at)}</div>
+                  <div>Updated At: {this.processDate(repository.updated_at)}</div>
+                  <div>Pushed At: {this.processDate(repository.pushed_at)}</div>
+                  <div>Stars:  {repository.stargazers_count}</div>
+                  <div>Watchers:  {repository.watchers}</div>
+                  <div> <i className="fas fa-code-branch icon-large"></i> <a target='_blank' href={`https://github.com/${user.login}/${repository.name}`}> https://github.com/{user.login}/{repository.name} </a> </div>
+                  </div>
+          </div>
+      );
+  }
+}
+
+
+//This component handles the profiles
+class Profile extends React.Component {
+  constructor(){
+    super();
+    this.showRepo = this.showRepo.bind(this);
+
+  }
+  showRepo(repo){
+      this.props.showRepository(repo);
+  }
+  render() {
+    let data = this.props.data;
+
+    let repositories = this.props.data.repos;
+    let notFound = data.notFound === 'Not Found' ? true : false;
+    
+    function processDate(timestamp){
+      let date = new Date(timestamp);
+      let year = date.getFullYear();
+      let month = date.getMonth();
+      let day = date.getDate();
+
+      return `${year}/${month}/${day}`;
+    }
+
+    if (notFound){
+
+      return (
+         <div className="notfound">
+            <h2>Oh no :(</h2>
+            <p>That user could not be found! </p>
+         </div>
+      );
+    } else {
+
+      return (
+        <div className="profileContainer container">
+          <div className="row ">
+            <div className="col">
+              <div className='profleImgContainer'> <img className='profileImg' src={data.avatar} alt={data.username}/> </div>
+              <h2 className='profileInfo'>{data.name || data.username}</h2>
+              <h2 className='profileInfo'>{data.email}</h2>
+              <h2 className='profileInfo'>{data.bio}</h2>
+              <h2 className='profileInfo'>{processDate(data.createdAt)}</h2>
+            </div>
+            <div className="col">
+              <div className='repoContainer'>
+                {
+                  repositories.map((repo) => {
+                    return (
+                      <div className='repo' onClick={() => this.showRepo(repo)} key={repo.id}>
+                        <div className='row align-items-center'>
+                          <div className='col-1'>
+                            <i className="fas fa-code-branch icon-large"></i> 
+                          </div>
+                          <div className='col'>
+                            <div> {repo.name} </div>
+                            <div> {repo.full_name} </div>
+                            <div> <a target='_blank' href={`https://github.com/${data.username}/${repo.name}`}> https://github.com/{data.username}/{repo.name} </a> </div>      
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+      }
+  }
+}
+
+    ReactDOM.render(<App/>, destination);
+  </script>
+</body>
+
+</html>
