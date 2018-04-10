@@ -163,7 +163,7 @@ class App extends React.Component {
       <div>
             <SearchUsers fetchProfile={this.fetchProfile.bind(this)} fetchUsers={this.fetchUsers.bind(this)}/>
             {
-              showProfile ? <Profile showRepository={this.showRepository.bind(this)} data={this.state.user} /> : null
+              showProfile ? <Profile showRepository={this.showRepository.bind(this)} fetchUsers={this.fetchUsers.bind(this)} data={this.state.user} /> : null
             }
             {
               showSearch ? <Users fetchProfile={this.fetchProfile.bind(this)} users={this.state.users}/> : null
@@ -254,7 +254,7 @@ class Repository extends React.Component {
       return (
           <div>
                   <div className='repositoryContainer'>
-            <button className='btn btn-primary left' onClick={() => this.back()}> Back </button>
+            <button className='btn btn-primary left' onClick={() => this.back()}> <i className="fas fa-caret-left icon"></i> Back </button>
                   <div className='repositoryName'> {repository.name} </div>
                   <div className='repositoryDesc'> {repository.description} </div>
                   <div>Size: {repository.size / 1000}KB </div>
@@ -277,10 +277,13 @@ class Profile extends React.Component {
   constructor(){
     super();
     this.showRepo = this.showRepo.bind(this);
-
+    this.back = this.back.bind(this);
   }
   showRepo(repo){
       this.props.showRepository(repo);
+  }
+  back(){
+      this.props.fetchUsers(this.props.data.username);
   }
   render() {
     let data = this.props.data;
@@ -311,11 +314,13 @@ class Profile extends React.Component {
         <div className="profileContainer container">
           <div className="row ">
             <div className="col">
+              <button className='btn btn-primary' onClick={() => this.back()}> <i className="fas fa-caret-left icon"></i>  Back </button>
               <div className='profleImgContainer'> <img className='profileImg' src={data.avatar} alt={data.username}/> </div>
               <h2 className='profileInfo'>{data.name || data.username}</h2>
               <h2 className='profileInfo'>{data.email}</h2>
               <h2 className='profileInfo'>{data.bio}</h2>
               <h2 className='profileInfo'>{processDate(data.createdAt)}</h2>
+              
             </div>
             <div className="col">
               <div className='repoContainer'>
